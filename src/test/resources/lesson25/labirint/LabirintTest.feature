@@ -1,6 +1,27 @@
-# Created by eremin at 31.03.2024
-Feature: # Enter feature name here
-  # Enter feature description here
+# language: ru
 
-  Scenario: # Enter scenario name here
-    # Enter steps here
+@allure.label.owner=DmitryEremin
+@allure.label.epic:WebInterface
+@allure.label.feature:EssentialFeatures
+@allure.label.story:Authentication
+Функция: Поиск на сайте
+  Можно найти все товары, в названии которых есть искомое слово.
+
+  Контекст:
+    * открыть главную страницу
+    * проставить куки "cookie_policy=1"
+
+  @positive @search @critical
+  Сценарий: Поиск товаров на сайте и добавление в корзину
+    * выполнить поиск по слову "java"
+    * добавить все товары в корзину
+    * проверить, что в иконке корзины стоит "60" товаров
+    * перейти в корзину
+    * проверить, что в корзине счетчик указывает на "60 товаров"
+
+  @negative @search @blocker
+  Сценарий: Поиск товаров на сайте и добавление в корзину
+    * выполнить поиск по слову "sdhfjgmnbvcxsdfg"
+    * проверить, что на странице отображается текст "Мы ничего не нашли по вашему запросу! Что делать?"
+    * перейти в корзину
+    * проверить, что в корзине отображается текст "ВАША КОРЗИНА ПУСТА. ПОЧЕМУ?"

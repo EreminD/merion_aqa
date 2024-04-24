@@ -1,4 +1,4 @@
-package ru.merion.aqa.hw_lesson12.page;
+package ru.merion.aqa.lesson12_hw.page;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;

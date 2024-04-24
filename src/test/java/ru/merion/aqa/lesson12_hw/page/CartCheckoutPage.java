@@ -1,4 +1,4 @@
-package ru.merion.aqa.hw_lesson12.page;
+package ru.merion.aqa.lesson12_hw.page;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -31,6 +31,6 @@ public class CartCheckoutPage {
     }
 
     public String getTotalPrice() {
-        return driver.findElement(By.cssSelector(".summary_info_label.summary_total_label")).getText();
+        return driver.findElement(By.cssSelector("[data-test=total-label]")).getText();
     }
 }

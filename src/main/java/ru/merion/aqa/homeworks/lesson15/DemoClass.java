@@ -15,12 +15,12 @@ public class DemoClass {
 
         EmployeeService service = new EmployeeService(url, username, password);
 
-        List<Employee> empsForCompany = service.getByCompanyId(2340);
+        List<Employee> empsForCompany = service.getByCompanyId(1339);
         System.out.println(empsForCompany.size());
 
-        int id = service.create(new CreateEmployee("D", "E", 2363, "e@mail.ru", "+7985678"));
+        int id = service.create(new CreateEmployee("D", "E", 1339, "e@mail.ru", "+7985678"));
 
-        Employee newEmp =  service.getById(id);
+        Employee newEmp = service.getById(id);
         System.out.println(newEmp);
     }
 }

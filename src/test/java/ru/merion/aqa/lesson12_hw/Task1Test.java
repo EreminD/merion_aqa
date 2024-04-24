@@ -1,17 +1,33 @@
 package ru.merion.aqa.lesson12_hw;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
-import ru.merion.aqa.homeworks.lesson7.page.TextInputPage;
+import ru.merion.aqa.lesson12_hw.page.TextInputPage;
 
-public class Task1 {
-    public static void main(String[] args) {
-        WebDriver driver = new ChromeDriver();
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-        String text = new TextInputPage(driver).open().setButtonName("Merion").getButtonText();
+public class Task1Test {
+    private static final String BUTTON_NAME = "Merion";
+    private WebDriver driver;
 
-        System.out.println("text = " + text);
+    @BeforeEach
+    public void open(){
+        driver = new ChromeDriver();
+    }
 
-        driver.quit();
+    @AfterEach
+    public void close(){
+        if(driver != null){
+            driver.quit();
+        }
+    }
+
+    @Test
+    public void iCanRenameTheButton() {
+        String text = new TextInputPage(driver).open().setButtonName(BUTTON_NAME).getButtonText();
+        assertEquals(BUTTON_NAME, text);
     }
 }

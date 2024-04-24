@@ -1,208 +1,96 @@
-package ru.merion.aqa.lesson16_hw;
+package ru.merion.aqa.lesson18_hw;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
-import okhttp3.logging.HttpLoggingInterceptor;
-import org.junit.jupiter.api.BeforeEach;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.merion.aqa.lesson15.MyCustomLogger;
 
-import java.io.IOException;
-import java.util.Iterator;
-
-import static okhttp3.logging.HttpLoggingInterceptor.Level.BODY;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 public class EmployeeTests {
-    private static final MediaType JSON = MediaType.get("application/json");
     private static final String LOGIN = "/auth/login";
     private static final String COMPANY = "company";
     private static final String EMPLOYEE = "employee";
+    private static final String EMPLOYEE_ID = "employee/{id}";
     private static final String X_CLIENT_TOKEN = "x-client-token";
-    private final String URL = "https://x-clients-be.onrender.com";
-    private ObjectMapper mapper;
-    private OkHttpClient client;
+    private static final String URL = "https://x-clients-be.onrender.com";
 
-    @BeforeEach
-    public void setUp() {
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor(new MyCustomLogger()).setLevel(BODY);
-
-        mapper = new ObjectMapper();
-        client = new OkHttpClient.Builder().addNetworkInterceptor(interceptor).build();
+    @BeforeAll
+    public static void setAll() {
+        RestAssured.baseURI = URL;
+        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     }
 
     @Test
     @DisplayName("Можно создать сотрудника в компании")
-    public void iCanCreateAnEmployee() throws IOException {
+    public void iCanCreateAnEmployee() {
         // Создать компанию
         int newId = createNewCompany();
-
-        // Создать сотрудника
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .build();
-
         String json = " { \"firstName\": \"Иван\", \"lastName\": \"Иванов\", \"companyId\": " + newId + ", \"phone\": \"+7923432423\"}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
-        Request createRequest = new Request.Builder()
-                .url(url)
-                .header(X_CLIENT_TOKEN, getToken())
-                .post(reqBody).build();
 
-        Response response = client.newCall(createRequest).execute();
-        JsonNode jsonNode = mapper.readTree(response.body().string());
-
-        assertEquals(201, response.code());
-        assertTrue(jsonNode.get("id").asInt() > 0);
+        given().body(json).header(X_CLIENT_TOKEN, getToken()).contentType(ContentType.JSON).post(EMPLOYEE).then().statusCode(201).body("id", greaterThan(0));
     }
 
     @Test
     @DisplayName("Сотрудник отображается в списке сотрудников компании")
-    public void iCanFindEmployeeInfo() throws IOException {
+    public void iCanFindEmployeeInfo() {
         int newId = createNewCompany();
 
         int firstEmpId = createNewEmployee(newId);
         int secondEmpId = createNewEmployee(newId);
 
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addQueryParameter("company", String.valueOf(newId))
-                .build();
-
-        Request getListRequest = new Request.Builder()
-                .url(url)
-                .get().build();
-
-        Response response = client.newCall(getListRequest).execute();
-        JsonNode jsonNode = mapper.readTree(response.body().string()); // [ {}, {} ]
-        Iterator<JsonNode> elements = jsonNode.elements();// {}, {}
-        JsonNode emp1 = elements.next();
-        JsonNode emp2 = elements.next();
-
-        assertFalse(elements.hasNext());
-        assertEquals(firstEmpId, emp1.get("id").asInt());
-        assertEquals(secondEmpId, emp2.get("id").asInt());
-        assertEquals(200, response.code());
+        given().queryParam("company", newId).get(EMPLOYEE).then().statusCode(200).body("size()", is(2)).body("[0].id", is(firstEmpId)).body("[1].id", is(secondEmpId));
     }
 
     @Test
     @DisplayName("Сотруднику можно изменить статус активности")
-    public void iCanDeactiveteEmp() throws IOException {
+    public void iCanDeactiveteEmp() {
         int companyId = createNewCompany();
         int empId = createNewEmployee(companyId);
 
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addPathSegment(String.valueOf(empId))
-                .build();
-
         String json = "{\"isActive\": false}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
+        given().body(json).header(X_CLIENT_TOKEN, getToken()).contentType(ContentType.JSON).patch(EMPLOYEE + "/" + empId).then().statusCode(200);
 
-        Request patchRequest = new Request.Builder()
-                .url(url)
-                .addHeader(X_CLIENT_TOKEN, getToken())
-                .patch(reqBody).build();
-
-        Response response = client.newCall(patchRequest).execute();
-        assertEquals(200, response.code());
-
-        JsonNode empInfo = getEmpInfo(empId);
-        assertFalse(empInfo.get("isActive").asBoolean());
+        given().get(EMPLOYEE_ID, empId).then().body("isActive", is(false));
     }
 
     @Test
     @DisplayName("Сотруднику можно изменить email")
-    public void iCanChangeEmail() throws IOException {
+    public void iCanChangeEmail() {
         int companyId = createNewCompany();
         int empId = createNewEmployee(companyId);
 
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addPathSegment(String.valueOf(empId))
-                .build();
-
         String json = "{\"email\": \"mail@mail.ru\"}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
+        given().body(json).header(X_CLIENT_TOKEN, getToken()).contentType(ContentType.JSON).patch(EMPLOYEE + "/" + empId).then().statusCode(200);
 
-        Request patchRequest = new Request.Builder()
-                .url(url)
-                .addHeader(X_CLIENT_TOKEN, getToken())
-                .patch(reqBody).build();
-
-        Response response = client.newCall(patchRequest).execute();
-        assertEquals(200, response.code());
-
-        JsonNode empInfo = getEmpInfo(empId);
-        assertEquals("mail@mail.ru", empInfo.get("email").asText());
+        given().get(EMPLOYEE_ID, empId).then().body("email", is("mail@mail.ru"));
     }
 
     @Test
     @DisplayName("[BUG]. Сотруднику можно изменить email и телефон")
-    public void iCanChangeEmailAndPhone() throws IOException {
+    public void iCanChangeEmailAndPhone() {
         int companyId = createNewCompany();
         int empId = createNewEmployee(companyId);
 
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addPathSegment(String.valueOf(empId))
-                .build();
-
         String json = "{\"email\": \"mail@mail.ru\", \"phone\":\"+7765432456432\"}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
+        given().body(json).header(X_CLIENT_TOKEN, getToken()).contentType(ContentType.JSON).patch(EMPLOYEE + "/" + empId).then().statusCode(200);
 
-        Request patchRequest = new Request.Builder()
-                .url(url)
-                .addHeader(X_CLIENT_TOKEN, getToken())
-                .patch(reqBody).build();
-
-        Response response = client.newCall(patchRequest).execute();
-        assertEquals(200, response.code());
-
-        JsonNode empInfo = getEmpInfo(empId);
-        assertEquals("mail@mail.ru", empInfo.get("email").asText());
-        assertEquals("+7765432456432", empInfo.get("phone").asText());
+        given().get(EMPLOYEE + "/" + empId).then().body("email", is("mail@mail.ru")).body("phone", is("+7765432456432"));
     }
 
     @Test
-    @DisplayName("Можно создать сотрудника в компании")
-    public void iCantCreateEmployeeForNullCompany() throws IOException {
-        // Создать сотрудника
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .build();
-
+    @DisplayName("Нельзя создать сотрудника для несуществующей компании")
+    public void iCantCreateEmployeeForNullCompany() {
         String json = " { \"firstName\": \"Иван\", \"lastName\": \"Иванов\", \"companyId\": " + Integer.MAX_VALUE + ", \"phone\": \"+7923432423\"}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
-        Request createRequest = new Request.Builder()
-                .url(url)
-                .header(X_CLIENT_TOKEN, getToken())
-                .post(reqBody).build();
+        given().body(json).header(X_CLIENT_TOKEN, getToken()).contentType(ContentType.JSON).post(EMPLOYEE).then().statusCode(500).body("statusCode", is(500)).body("message", is("Internal server error"));
 
-        Response response = client.newCall(createRequest).execute();
-        JsonNode jsonNode = mapper.readTree(response.body().string());
-
-        assertEquals(500, response.code());
-        assertEquals(500, jsonNode.get("statusCode").asInt());
-        assertEquals("Internal server error", jsonNode.get("message").asText());
-
-        url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addQueryParameter("company", String.valueOf(Integer.MAX_VALUE))
-                .build();
-
-        Request getListRequest = new Request.Builder()
-                .url(url)
-                .get().build();
-
-        response = client.newCall(getListRequest).execute();
-        jsonNode = mapper.readTree(response.body().string());
-        assertFalse(jsonNode.elements().hasNext());
+        given().queryParam("company", Integer.MAX_VALUE).get(EMPLOYEE).then().statusCode(200).body("size()", is(0));
     }
 
-    private String getToken() throws IOException {
+    private String getToken() {
         String json = """
                 {
                   "username": "leonardo",
@@ -210,23 +98,16 @@ public class EmployeeTests {
                 }
                 """;
 
-        RequestBody authBody = RequestBody.create(json, JSON);
-        Request request = new Request.Builder().post(authBody).url(URL + LOGIN).build();
-        Response response = client.newCall(request).execute();
-
-        String body = response.body().string();
-
-        JsonNode jsonNode = mapper.readTree(body);
-        return jsonNode.get("userToken").asText();
+        return given()
+                .body(json)
+                .contentType(ContentType.JSON)
+                .post(LOGIN)
+                .then()
+                .extract()
+                .path("userToken");
     }
 
-    private int createNewCompany() throws IOException {
-
-        // Создать сотрудника
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(COMPANY)
-                .build();
-
+    private int createNewCompany() {
         String json = """
                 {
                   "name": "Contract Test Company",
@@ -234,49 +115,11 @@ public class EmployeeTests {
                 }
                 """;
 
-        RequestBody reqBody = RequestBody.create(json, JSON);
-        Request createRequest = new Request.Builder()
-                .url(url)
-                .header(X_CLIENT_TOKEN, getToken())
-                .post(reqBody).build();
-
-        Response response = client.newCall(createRequest).execute();
-
-        JsonNode jsonNode = mapper.readTree(response.body().string());
-
-        // Получить id компании
-        return jsonNode.get("id").asInt();
+        return given().body(json).contentType(ContentType.JSON).header(X_CLIENT_TOKEN, getToken()).post(COMPANY).then().extract().path("id");
     }
 
-    private int createNewEmployee(int companyId) throws IOException {
-        // Создать сотрудника
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .build();
-
-        String json = " { \"firstName\": \"Иван\", \"lastName\": \"Иванов\", \"companyId\": " + companyId + ", \"phone\": \"+7923432423\"}";
-        RequestBody reqBody = RequestBody.create(json, JSON);
-        Request createRequest = new Request.Builder()
-                .url(url)
-                .header(X_CLIENT_TOKEN, getToken())
-                .post(reqBody).build();
-
-        Response response = client.newCall(createRequest).execute();
-        JsonNode jsonNode = mapper.readTree(response.body().string());
-        return jsonNode.get("id").asInt();
-    }
-
-    private JsonNode getEmpInfo(int empId) throws IOException {
-        HttpUrl url = HttpUrl.parse(URL).newBuilder()
-                .addPathSegment(EMPLOYEE)
-                .addPathSegment(String.valueOf(empId))
-                .build();
-
-        Request getRequest = new Request.Builder()
-                .url(url)
-                .get().build();
-
-        Response response = client.newCall(getRequest).execute();
-        return mapper.readTree(response.body().string());
+    private int createNewEmployee(int companyId) {
+        String json = "{\"firstName\": \"Иван\", \"lastName\": \"Иванов\", \"companyId\": " + companyId + ", \"phone\": \"+7923432423\"}";
+        return given().body(json).contentType(ContentType.JSON).header(X_CLIENT_TOKEN, getToken()).post(EMPLOYEE).then().extract().path("id");
     }
 }

@@ -1,13 +1,31 @@
 package ru.merion.aqa.lesson12_hw;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import ru.merion.aqa.lesson12_hw.page.CalculatorPage;
 
-public class Task3 {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    public static void main(String[] args) {
-        WebDriver driver = new ChromeDriver();
+public class Task3Test {
+    private WebDriver driver;
+
+    @BeforeEach
+    public void open(){
+        driver = new ChromeDriver();
+    }
+
+    @AfterEach
+    public void close(){
+        if(driver != null){
+            driver.quit();
+        }
+    }
+
+    @Test
+    public void checkSlowCalculator() {
         CalculatorPage calculator = new CalculatorPage(driver).open();
 
         calculator.setDelay(10);
@@ -16,11 +34,6 @@ public class Task3 {
         calculator.press_8();
         calculator.press_eq();
 
-        calculator.press("7");
-
-        String result = calculator.getResult();
-        System.out.println(result);
-
-        driver.quit();
+        assertEquals("15", calculator.getResult());
     }
 }

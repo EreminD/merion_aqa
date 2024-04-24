@@ -1,5 +1,8 @@
 package ru.merion.aqa.lesson12_hw;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import ru.merion.aqa.lesson12_hw.page.CatalogPage;
@@ -10,9 +13,27 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Task4 {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    public static void main(String[] args) {
+public class Task4Test {
+
+    private WebDriver driver;
+
+    @BeforeEach
+    public void open(){
+        driver = new ChromeDriver();
+    }
+
+    @AfterEach
+    public void close(){
+        if(driver != null){
+            driver.quit();
+        }
+    }
+
+    @Test
+    public void happyPath() {
         AuthPage auth;
         CatalogPage catalog;
 
@@ -21,7 +42,6 @@ public class Task4 {
         itemNames.add("Sauce Labs Bolt T-Shirt");
         itemNames.add("Sauce Labs Onesie");
 
-        WebDriver driver = new ChromeDriver();
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
 
         auth = new AuthPage(driver).open();
@@ -34,9 +54,7 @@ public class Task4 {
                 .setContactData("Иван", "Иванов", "123457")
                 .getTotalPrice();
 
-        driver.quit();
-
-        System.out.println(total);
+        assertTrue(total.endsWith("$58.29"));
     }
 
 }
